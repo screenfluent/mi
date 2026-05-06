@@ -38,7 +38,7 @@ async function run(messages) { while (true) {
     const { name, arguments: rawArgs } = toolCall.function, args = JSON.parse(rawArgs);
     console.log(gray(`⟡ ${name}(${JSON.stringify(args)})`)); if (!tools[name]) { messages.push({ role: 'tool', tool_call_id: toolCall.id, content: `Error: unknown tool "${name}". Available: ${Object.keys(tools).join(', ')}` }); continue; } const result = String(await tools[name](args));
     // Log truncated to 200 chars for terminal readability; the model gets the full result.
-    console.log(gray(result.length > 200 ? result.slice(0, 200) + '…' : result)); messages.push({ role: 'tool', tool_call_id: toolCall.id, content: result });
+    console.log(gray(result.length > 200 ? `${result.slice(0, 200)}…` : result)); messages.push({ role: 'tool', tool_call_id: toolCall.id, content: result });
 
   } } }
 
@@ -55,7 +55,7 @@ const history = [{ role: 'system', content: SYSTEM }], getArg = key => { const i
 if (process.argv.includes('-h')) { console.log('usage: mi [-p prompt] [-f file] [-h]\n  pipe: echo "..." | mi    repl: /reset clears history\nenv: OPENAI_API_KEY, MODEL, OPENAI_BASE_URL, SYSTEM_PROMPT\nbash tool args: timeout=<ms> kills after delay · bg=truthy detaches and returns pid+log'); process.exit(0); }
 
 /* Append -f file contents, AGENTS.md (auto-ingested repo context), and skill summaries to system message. */
-const sysMsg = history[0], fileArg = getArg('-f'); if (fileArg) sysMsg.content += `\n\nFile (${fileArg}):\n` + readFileSync(fileArg, 'utf8'); if (existsSync('AGENTS.md')) sysMsg.content += '\n' + readFileSync('AGENTS.md', 'utf8'); const skills = listSkills(); if (skills.length) sysMsg.content += '\n\nSkill descriptions:\n' + skills.join('\n');
+const sysMsg = history[0], fileArg = getArg('-f'); if (fileArg) sysMsg.content += `\n\nFile (${fileArg}):\n${readFileSync(fileArg, 'utf8')}`; if (existsSync('AGENTS.md')) sysMsg.content += `\n${readFileSync('AGENTS.md', 'utf8')}`; const skills = listSkills(); if (skills.length) sysMsg.content += `\n\nSkill descriptions:\n${skills.join('\n')}`;
 
 // ── One-shot modes: -p flag and stdin pipe ───────────────────────────
 if (getArg('-p')) { history.push({ role: 'user', content: getArg('-p') }); await run(history); process.exit(0); }
