@@ -1,3 +1,4 @@
+// tools/bash.mjs — Shell execution tool: foreground (captured) and background (detached) modes
 export default { name: 'bash', description: 'Runs in a detached process group. Returns combined stdout+stderr. Optional: timeout=ms kills after delay; bg=truthy fully detaches and returns pid + log file path.', parameters: { type: 'object', properties: { command: { type: 'string' }, timeout: { type: 'string' }, bg: { type: 'string' } }, required: ['command'] }, handler: ({command, timeout, bg}) => {
 
   // ── Background mode: fire-and-forget ──────────────────────────────

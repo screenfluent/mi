@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// mi — minimal autonomous agent CLI. Streams OpenAI chat completions, executes tool calls in a loop.
 
 // ── Imports & environment ────────────────────────────────────────────
 // Node builtins only — no npm deps. These four cover REPL, filesystem, subprocesses, and path resolution.
@@ -8,21 +9,19 @@ import { createInterface } from 'readline'; import { readFileSync, existsSync, r
 Object.assign(global, { spawn, readFileSync, existsSync, readdirSync, homedir }); const DIR = new URL('.', import.meta.url).pathname; Object.assign(process.env, { MI_DIR: DIR, MI_PATH: new URL(import.meta.url).pathname }); if (!process.env.OPENAI_API_KEY && !process.argv.includes('-h')) { console.error('OPENAI_API_KEY required'); process.exit(1); }
 
 // ── Tool discovery ───────────────────────────────────────────────────
-/* Load tool modules; each exports {name, description, parameters, handler}. */
+// Load tool modules; each exports {name, description, parameters, handler}.
 const toolMods = await Promise.all(readdirSync(`${DIR}tools`).filter(f => f.endsWith('.mjs')).map(f => import(`${DIR}tools/${f}`))), defs = toolMods.map(m => m.default), gray = s => `\x1b[90m${s}\x1b[0m`, { listSkills } = toolMods.find(m => m.listSkills);
 const tools = Object.fromEntries(defs.map(d => [d.name, d.handler])), toolSchemas = defs.map(d => ({ type: 'function', function: { name: d.name, description: d.description, parameters: d.parameters } }));
 
 // ── Agent loop: chat → stream → execute tools → repeat ──────────────
-/*
- * Streams the API response, executes any tool calls, and loops until the
- * model returns a plain text reply (no further tool invocations).
- */
+// Streams the API response, executes any tool calls, and loops until the
+// model returns a plain text reply (no further tool invocations).
 async function run(messages) { while (true) {
 
-  // — Send streaming chat completion request —
+  // ─ Send streaming chat completion request ─
   const response = await fetch(`${(process.env.OPENAI_BASE_URL || 'https://api.openai.com').replace(/\/+$/, '')}/v1/chat/completions`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` }, body: JSON.stringify({ model: process.env.MODEL || 'gpt-5.4', messages, tools: toolSchemas, stream: true }) }); if (!response.ok) { const body = await response.json().catch(() => ({})); throw new Error(body.error?.message || `HTTP ${response.status}`); }
 
-  // — Parse SSE stream: print content tokens, accumulate tool-call deltas by index —
+  // ─ Parse SSE stream: print content tokens, accumulate tool-call deltas by index ─
   // SSE frames are delimited by double newlines (\n\n). We buffer raw bytes and split on
   // that boundary, then extract the JSON after each "data: " prefix (per SSE spec).
   const message = { role: 'assistant', content: '' }, decoder = new TextDecoder(); let buffer = '';
@@ -33,7 +32,7 @@ async function run(messages) { while (true) {
   for await (const chunk of response.body) { buffer += decoder.decode(chunk, { stream: true }); let pos; while ((pos = buffer.indexOf('\n\n')) >= 0) { const event = buffer.slice(0, pos); buffer = buffer.slice(pos + 2); for (const line of event.split('\n')) { if (!line.startsWith('data: ')) continue; const payload = line.slice(6); if (payload === '[DONE]') continue; let json; try { json = JSON.parse(payload); } catch { continue; } if (json.error) throw new Error(json.error.message || JSON.stringify(json.error)); const delta = json.choices?.[0]?.delta; if (!delta) continue; if (delta.content) { process.stdout.write(delta.content); message.content += delta.content; } if (delta.tool_calls) { message.tool_calls ||= []; for (const tc of delta.tool_calls) { const slot = message.tool_calls[tc.index] ||= { id: '', type: 'function', function: { name: '', arguments: '' } }; if (tc.id) slot.id = tc.id; if (tc.type) slot.type = tc.type; const fn = tc.function; if (fn?.name) slot.function.name += fn.name; if (fn?.arguments) slot.function.arguments += fn.arguments; } } } } }
   if (message.content) process.stdout.write('\n'); messages.push(message); if (!message.tool_calls) return;
 
-  // — Execute each tool call and push results back into history —
+  // ─ Execute each tool call and push results back into history ─
   for (const toolCall of message.tool_calls) {
     const { name, arguments: rawArgs } = toolCall.function, args = JSON.parse(rawArgs);
     console.log(gray(`⟡ ${name}(${JSON.stringify(args)})`)); if (!tools[name]) { messages.push({ role: 'tool', tool_call_id: toolCall.id, content: `Error: unknown tool "${name}". Available: ${Object.keys(tools).join(', ')}` }); continue; } const result = String(await tools[name](args));
@@ -54,7 +53,7 @@ const history = [{ role: 'system', content: SYSTEM }], getArg = key => { const i
 
 if (process.argv.includes('-h')) { console.log('usage: mi [-p prompt] [-f file] [-h]\n  pipe: echo "..." | mi    repl: /reset clears history\nenv: OPENAI_API_KEY, MODEL, OPENAI_BASE_URL, SYSTEM_PROMPT\nbash tool args: timeout=<ms> kills after delay · bg=truthy detaches and returns pid+log'); process.exit(0); }
 
-/* Append -f file contents, AGENTS.md (auto-ingested repo context), and skill summaries to system message. */
+// Append -f file contents, AGENTS.md (auto-ingested repo context), and skill summaries to system message.
 const sysMsg = history[0], fileArg = getArg('-f'); if (fileArg) sysMsg.content += `\n\nFile (${fileArg}):\n${readFileSync(fileArg, 'utf8')}`; if (existsSync('AGENTS.md')) sysMsg.content += `\n${readFileSync('AGENTS.md', 'utf8')}`; const skills = listSkills(); if (skills.length) sysMsg.content += `\n\nSkill descriptions:\n${skills.join('\n')}`;
 
 // ── One-shot modes: -p flag and stdin pipe ───────────────────────────
