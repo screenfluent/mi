@@ -11,7 +11,7 @@ Object.assign(global, { spawn, readFileSync, existsSync, readdirSync, homedir })
 // ── Tool discovery ───────────────────────────────────────────────────
 // Load tool modules; each exports {name, description, parameters, handler}.
 // ANSI helpers: 90 = bright black (gray), 31 = red (error), 38;5;208 = orange (brand)
-const toolMods = await Promise.all(readdirSync(`${DIR}tools`).filter(file => file.endsWith('.mjs')).map(file => import(`${DIR}tools/${file}`))), defs = toolMods.map(mod => mod.default), gray = s => `\x1b[90m${s}\x1b[0m`, red = s => `\x1b[31m${s}\x1b[0m`, { listSkills } = toolMods.find(mod => mod.listSkills);
+const toolMods = await Promise.all(readdirSync(`${DIR}tools`).filter(file => file.endsWith('.mjs')).map(file => import(`${DIR}tools/${file}`))), defs = toolMods.map(mod => mod.default), gray = s => `\x1b[90m${s}\x1b[0m`, red = s => `\x1b[31m${s}\x1b[0m`, orange = s => `\x1b[38;5;208m${s}\x1b[0m`, { listSkills } = toolMods.find(mod => mod.listSkills);
 const tools = Object.fromEntries(defs.map(def => [def.name, def.handler])), toolSchemas = defs.map(def => ({ type: 'function', function: { name: def.name, description: def.description, parameters: def.parameters } }));
 
 // ── Agent loop: chat → stream → execute tools → repeat ──────────────
@@ -62,7 +62,7 @@ const prompt = getArg('-p'); if (prompt) { history.push({ role: 'user', content:
 
 // ── Interactive REPL ─────────────────────────────────────────────────
 // readline setup, version banner, then an infinite prompt loop
-const readLine = createInterface({ input: process.stdin, output: process.stdout }); const promptUser = query => new Promise(resolve => readLine.question(query, resolve)); const version = JSON.parse(readFileSync(`${DIR}package.json`, 'utf8')).version; console.log(`\x1b[38;5;208m◰ mi\x1b[90m/${version}\x1b[0m`); /* orange brand + gray version */
+const readLine = createInterface({ input: process.stdin, output: process.stdout }); const promptUser = query => new Promise(resolve => readLine.question(query, resolve)); const version = JSON.parse(readFileSync(`${DIR}package.json`, 'utf8')).version; console.log(`${orange('◰ mi')}${gray(`/${version}`)}`);
 
 // Ctrl-D (EOF) → clean exit; then loop: read input → run agent → repeat
 // /reset: keep system prompt (index 0), drop all conversation history
