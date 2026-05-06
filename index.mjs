@@ -20,7 +20,8 @@ const tools = Object.fromEntries(defs.map(def => [def.name, def.handler])), tool
 async function run(messages) { while (true) {
 
   // ─ Send streaming chat completion request ─
-  const response = await fetch(`${(process.env.OPENAI_BASE_URL || 'https://api.openai.com').replace(/\/+$/, '')}/v1/chat/completions`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` }, body: JSON.stringify({ model: process.env.MODEL || 'gpt-5.4', messages, tools: toolSchemas, stream: true }) }); if (!response.ok) { const body = await response.json().catch(() => ({})); throw new Error(body.error?.message || `HTTP ${response.status}`); }
+  const response = await fetch(`${(process.env.OPENAI_BASE_URL || 'https://api.openai.com').replace(/\/+$/, '')}/v1/chat/completions`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` }, body: JSON.stringify({ model: process.env.MODEL || 'gpt-5.4', messages, tools: toolSchemas, stream: true }) });
+  if (!response.ok) { const body = await response.json().catch(() => ({})); throw new Error(body.error?.message || `HTTP ${response.status}`); }
 
   // ─ Parse SSE stream: print content tokens, accumulate tool-call deltas by index ─
   // SSE frames are delimited by double newlines (\n\n). We buffer raw bytes and split on
@@ -57,9 +58,7 @@ if (process.argv.includes('-h')) { console.log('usage: mi [-p prompt] [-f file] 
 const sysMsg = history[0], fileArg = getArg('-f'); if (fileArg) sysMsg.content += `\n\nFile (${fileArg}):\n${readFileSync(fileArg, 'utf8')}`; if (existsSync('AGENTS.md')) sysMsg.content += `\n${readFileSync('AGENTS.md', 'utf8')}`; const skills = listSkills(); if (skills.length) sysMsg.content += `\n\nSkill descriptions:\n${skills.join('\n')}`;
 
 // ── One-shot modes: -p flag and stdin pipe ───────────────────────────
-const prompt = getArg('-p'); if (prompt) { history.push({ role: 'user', content: prompt }); await run(history); process.exit(0); }
-
-if (!process.stdin.isTTY) { let input = ''; for await (const chunk of process.stdin) input += chunk; /* Buffer auto-coerces to string via += */ history.push({ role: 'user', content: input.trim() }); await run(history); process.exit(0); }
+const prompt = getArg('-p'); if (prompt) { history.push({ role: 'user', content: prompt }); await run(history); process.exit(0); } if (!process.stdin.isTTY) { let input = ''; for await (const chunk of process.stdin) input += chunk; /* Buffer auto-coerces to string via += */ history.push({ role: 'user', content: input.trim() }); await run(history); process.exit(0); }
 
 // ── Interactive REPL ─────────────────────────────────────────────────
 // readline setup, version banner, then an infinite prompt loop
