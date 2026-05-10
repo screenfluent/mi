@@ -73,6 +73,8 @@
 - label: default API base is https://api.openai.com (OPENAI_BASE_URL env var)
   command: grep -q 'api.openai.com' index.mjs
 - OPENAI_API_KEY required for all modes except -h
+- label: REASONING_EFFORT is optional and omitted from API requests when unset
+  command: grep -q 'reasoning_effort.*REASONING_EFFORT' index.mjs
 - MI_DIR and MI_PATH set in process.env for tools/skills to locate package assets
 
 # skills

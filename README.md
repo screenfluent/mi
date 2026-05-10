@@ -56,6 +56,7 @@ MODEL=qwen3.5:4b OPENAI_BASE_URL=http://localhost:33821 mi
 | `OPENAI_API_KEY` | (none) | api key |
 | `OPENAI_BASE_URL` | `https://api.openai.com` | api base url (ollama, lmstudio, litellm, etc) |
 | `MODEL` | `gpt-5.4` | model name |
+| `REASONING_EFFORT` | (unset) | optional reasoning effort for compatible models (`minimal`, `low`, `medium`, `high`) |
 | `SYSTEM_PROMPT` | built-in agent prompt | override the system prompt entirely |
 
 ## deep dive

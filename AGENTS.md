@@ -57,6 +57,7 @@ Requires Node 24.x in CI. `index.mjs`, `tools/`, and `skills/` are the published
 | `OPENAI_API_KEY` | required (unless `-h`) |
 | `OPENAI_BASE_URL` | `https://api.openai.com` |
 | `MODEL` | `gpt-5.4` |
+| `REASONING_EFFORT` | unset (omitted from API request) |
 | `SYSTEM_PROMPT` | built-in prompt (fully overrides) |
 
 ## AGENTS.md auto-ingestion

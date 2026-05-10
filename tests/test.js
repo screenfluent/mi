@@ -283,6 +283,27 @@ test('environment variables', async () => {
   assert.match(result.stdout, /env vars checked/);
 });
 
+test('REASONING_EFFORT is included only when set', async () => {
+  let callCount = 0;
+  requestHandler = (req, res, body) => {
+    callCount++;
+    if (callCount === 1) {
+      assert.ok(!Object.hasOwn(body, 'reasoning_effort'));
+    } else {
+      assert.strictEqual(body.reasoning_effort, 'high');
+    }
+    sse(res, { role: 'assistant', content: `reasoning ${callCount}` });
+  };
+
+  const defaultResult = await runMi(['-p', 'check default reasoning effort']);
+  assert.strictEqual(defaultResult.status, 0);
+  assert.match(defaultResult.stdout, /reasoning 1/);
+
+  const configuredResult = await runMi(['-p', 'check configured reasoning effort'], { REASONING_EFFORT: 'high' });
+  assert.strictEqual(configuredResult.status, 0);
+  assert.match(configuredResult.stdout, /reasoning 2/);
+});
+
 test('AGENTS.md context', async () => {
   const agentsFile = join(process.cwd(), 'AGENTS.md');
   const oldContent = existsSync(agentsFile) ? readFileSync(agentsFile, 'utf8') : null;
@@ -739,6 +760,7 @@ test('-h help flag', async () => {
   assert.match(result.stdout, /\-p prompt/);
   assert.match(result.stdout, /\-f file/);
   assert.match(result.stdout, /OPENAI_API_KEY/);
+  assert.match(result.stdout, /REASONING_EFFORT/);
 });
 
 test('HTTP error handling', async () => {
