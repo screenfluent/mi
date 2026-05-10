@@ -1,4 +1,4 @@
-![Splash image](./assets/splash.png)
+[![mi video](https://img.youtube.com/vi/JdMBn7FXilg/maxresdefault.jpg)](https://www.youtube.com/watch?v=JdMBn7FXilg)
 
 agentic coding in 30 loc. a loop, two tools, and an llm.
 
