@@ -31,8 +31,8 @@
 - Node builtins exposed globally for tool modules: spawn, readFileSync, existsSync, readdirSync, homedir
 
 # tools
-- label: exactly two tools: bash (shell execution) and skill (skill discovery/loading)
-  command: test $(ls tools/*.mjs | wc -l) -eq 2 && test -f tools/bash.mjs && test -f tools/skill.mjs
+- label: exactly three bundled tools: bash, fetch, and skill
+  command: test $(ls tools/*.mjs | wc -l) -eq 3 && test -f tools/bash.mjs && test -f tools/skill.mjs && test -f tools/fetch.mjs
 - label: bash tool runs commands in detached process groups for clean signal handling
   command: grep -q 'detached.*true' tools/bash.mjs
 - label: bash tool supports timeout (ms) and background (bg) modes
@@ -50,6 +50,12 @@
 - label: tool output logged truncated to 200 chars; full result sent to model
   command: grep -q '200' index.mjs
 - unknown tool calls return error listing available tools instead of crashing
+- label: fetch tool supports safe HTTP(S) page retrieval as markdown/text with metadata
+  command: grep -q "name: 'fetch'" tools/fetch.mjs && grep -q "untrusted fetched content" tools/fetch.mjs
+- label: fetch tool blocks non-http/local targets and outbound secrets by default
+  command: grep -q "only http(s)" tools/fetch.mjs && grep -q "secret detected" tools/fetch.mjs
+- label: fetch tool redacts common prompt-injection patterns in fetched content
+  command: grep -q "prompt-injection" tools/fetch.mjs
 
 # cli
 - four CLI modes: interactive REPL, one-shot (-p), stdin pipe, and file context (-f)

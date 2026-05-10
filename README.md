@@ -1,12 +1,13 @@
 [![mi video](https://img.youtube.com/vi/JdMBn7FXilg/maxresdefault.jpg)](https://www.youtube.com/watch?v=JdMBn7FXilg)
 
-agentic coding in 30 loc. a loop, two tools, and an llm.
+agentic coding in 30 loc. a loop, tools, and an llm.
 
 ## features
 
 - works with any OpenAI-compatible API: OpenAI, ollama, lmstudio, litellm, vllm, local models
 - `bash` tool gives full system access: git, curl, compilers, file I/O (`cat`, `sed -i`, heredocs); optional `timeout=<ms>` and `bg=truthy` for background tasks
 - `skill` tool loads markdown playbooks from `skills/` and `~/.agents/skills/` (auto-advertised in system prompt)
+- `fetch` tool retrieves HTTP(S) pages as compact markdown/text with metadata, limits, SSRF/secret checks, and prompt-injection redaction
 - bundled skills: `plan`, `tasks`, `delegate`, `explore`, `refactor`, `review`, `verify`, `debug`, `tdd`, `new-skill`, `self`
 - modular tools: add new tools by dropping `.mjs` files in `tools/` (hot-loaded before each model call)
 - self-extending: agent can write its own tools via the `self` skill
@@ -74,9 +75,10 @@ export default { name: 'bash', description: '...', parameters: {...}, handler: (
 }};
 ```
 
-the harness hot-loads tools before each model call by scanning `tools/*.mjs`. two tools ship by default:
+the harness hot-loads tools before each model call by scanning `tools/*.mjs`. bundled tools include:
 
 - `bash` gives the agent access to the entire system: git, curl, compilers, package managers, and file I/O (via `cat`, `sed -n`, `sed -i`, heredocs; the system prompt teaches the patterns). optional `timeout=<ms>` kills the process after the given delay and resolves with `[timeout]`. optional `bg=truthy` runs the command detached and returns `pid:X log:/tmp/mi-*.log` immediately.
+- `fetch` retrieves HTTP(S) URLs and returns metadata plus an `--- untrusted fetched content ---` boundary. HTML is converted to compact markdown by default; `raw: true` returns the original body text. It enforces timeout and byte limits, blocks non-http/local/private targets unless explicitly allowed, checks outbound args for obvious secrets, and redacts common prompt-injection patterns in returned content.
 - `skill` gives the agent specialized workflows loaded on demand from markdown playbooks in bundled `skills/` or `~/.agents/skills/`.
 
 every tool returns a string because that's what goes back into the conversation.
